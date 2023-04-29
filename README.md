@@ -1,0 +1,2 @@
+# dnsphis
+Scanning phising DNS
