@@ -1,8 +1,12 @@
-__author__ = 'Mahammad Salimov'
-__version__ = '20230430'
-__email__ = 'salimovm.7@gmail.com'
+#!/usr/bin/env python3
 
+"""
+A URL scanner that generates a list of permutations for a given domain name
+and checks if each URL is responsive.
 
+Author: Mahammad Salimov
+Email: salimovm.7@gmail.com
+"""
 
 
 import itertools
@@ -14,13 +18,17 @@ import requests
 import argparse
 from itertools import permutations
 
-# create parser object
 parser = argparse.ArgumentParser(description='URL Scanner')
-
-# add arguments to the parser
 parser.add_argument('-u', '--url', type=str, required=True, help='URL to scan')
 
-# parse the arguments
+tld_choices = ['all', 'popular']
+parser.add_argument('-t', '--tld', type=str, choices=tld_choices, default='popular',
+                    help=f'Choose TLDs to use in permutations (default: popular). Options: {tld_choices}')
+
+tld_source_choices = ['iana', 'file']
+parser.add_argument('-s', '--tld-source', type=str, choices=tld_source_choices, default='iana',
+                    help=f'Source of TLD list (default: iana). Options: {tld_source_choices}')
+
 args = parser.parse_args()
 
 REQUEST_TIMEOUT = 3
@@ -73,14 +81,19 @@ class Combinations:
         self.domain = self.ext.domain
         self.tld = self.ext.suffix
 
-    def get_tlds(self):
+    def get_tlds(self, source):
         """
-        Get a list of all valid TLDs from the IANA TLD registry
+        Get a list of all valid TLDs from the IANA TLD registry or a local file
         """
-        url = 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt'
-        response = requests.get(url)
-        tlds = response.content.decode('utf-8').split('\n')
-        tlds = [tld.lower() for tld in tlds if tld and not tld.startswith('#')]
+        if source == 'iana':
+            url = 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt'
+            response = requests.get(url)
+            tlds = response.content.decode('utf-8').split('\n')
+            tlds = [tld.lower() for tld in tlds if tld and not tld.startswith('#')]
+        else:
+            with open('tlds.txt', 'r') as f:
+                tlds = f.read().split('\n')
+                tlds = [tld.lower() for tld in tlds if tld and not tld.startswith('#')]
         return tlds
 
     def get_popular_tlds(self):
@@ -88,7 +101,7 @@ class Combinations:
         Get a list of popular TLDs from a pre-defined list
         """
         tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm']
-        return tlds
+        return tlds if self.tld == 'popular' else []
 
     def aLetters(self):
         # Check every possibility for every letter
@@ -98,12 +111,13 @@ class Combinations:
                 self.pem_list.append(permutation)
         return self.pem_list
 
+
     def lLetters(self):
         # Add the letters that make up the word for every position
         for i in range(len(self.domain) + 1):
-            for j in list(self.domain):
+            for j in list(set(self.domain)):  # Use set to remove duplicates
                 permutation = self.domain[:i] + j + self.domain[i:] + '.' + self.tld
-                if permutation in permutations:
+                if permutation in self.pem_list:
                     continue
                 self.pem_list.append(permutation)
         return self.pem_list
@@ -127,33 +141,52 @@ class Combinations:
 
         return self.pem_list
 
+    def swap_adjacent_characters(self):
+        for i in range(len(self.domain) - 1):
+            swapped_domain = list(self.domain)
+            swapped_domain[i], swapped_domain[i + 1] = swapped_domain[i + 1], swapped_domain[i]
+            permutation = "".join(swapped_domain) + "." + self.tld
+            self.pem_list.append(permutation)
+        return self.pem_list
+
     def replacement(self):
         for i, c in enumerate(self.domain):
-            pre = self.domain
-            suf = self.tld
+            pre = self.domain[:i]
+            suf = self.domain[i + 1:] + '.' + self.tld
             for layout in self.keyboards:
                 for r in layout.get(c, ''):
                     self.pem_list.append(pre + r + suf)
 
         return self.pem_list
 
+    def double_characters(self):
+        for i in range(len(self.domain)):
+            permutation = self.domain[:i] + self.domain[i] * 2 + self.domain[i + 1:] + '.' + self.tld
+            self.pem_list.append(permutation)
+        return self.pem_list
+
+    def reverse_domain(self):
+        reversed_domain = self.domain[::-1]
+        permutation = reversed_domain + '.' + self.tld
+        self.pem_list.append(permutation)
+        return self.pem_list
+
 class Permutation:
     def __init__(self, domain):
         self.domain_name = domain
 
-
-
     def generate_similar_domains(self):
-        # Get the original domain and suffix
-
-
-
+        combinations = Combinations(self.domain_name)
         permutations = []
 
-
-
-
-
+        permutations += combinations.aLetters()
+        permutations += combinations.lLetters()
+        permutations += combinations.tlds()
+        permutations += combinations.cyrillic()
+        permutations += combinations.replacement()
+        permutations += combinations.swap_adjacent_characters()
+        permutations += combinations.double_characters()
+        permutations += combinations.reverse_domain()
 
         return permutations
 
@@ -162,17 +195,21 @@ class Scanner:
         self.urls = urls
 
     async def get_response(self, session, url):
-        try:
-            async with session.get(url, timeout=REQUEST_TIMEOUT) as response:
-                return url, await response.text()
-        except (aiohttp.InvalidURL, aiohttp.ClientConnectorError, asyncio.TimeoutError):
-            return url, None
+        for i in range(REQUEST_RETRIES):
+            try:
+                async with session.get(url, timeout=REQUEST_TIMEOUT, ssl=False) as response:
+                    return url, await response.text()
+            except (aiohttp.InvalidURL, aiohttp.ClientConnectorError, asyncio.TimeoutError):
+                continue
+            except aiohttp.client_exceptions.SSLCertificateError:
+                return url, None
+        return url, None
 
     async def scan_urls(self):
         async with aiohttp.ClientSession() as session:
             tasks = []
             for url in self.urls:
-                tasks.append(asyncio.ensure_future(self.get_response(session, url)))
+                tasks.append(asyncio.ensure_future(self.get_response(session, f"https://{url}")))
             responses = await asyncio.gather(*tasks)
             return responses
 
@@ -186,18 +223,18 @@ def main():
         print('Please provide a URL with the -u or --url argument.')
         return
 
-    urls = Permutation(args.url).generate_similar_domains()
+    urls = list(set(Permutation(args.url).generate_similar_domains()))
 
-    print(Combinations('idda.az').replacement())
-    # scanner = Scanner(urls)
-    # loop = asyncio.get_event_loop()
-    # responses = loop.run_until_complete(scanner.scan_urls())
-    #
-    # for url, response in responses:
-    #     if response:
-    #         print(f'{url} returned response: {response[:50]}...')
-    #     else:
-    #         print(f'{url} did not return a response.')
+    scanner = Scanner(urls)
+    loop = asyncio.get_event_loop()
+    responses = loop.run_until_complete(scanner.scan_urls())
+
+    for url, response in responses:
+
+        if response:
+            print(f'{url} returned response: {response[:50]}...')
+        else:
+            print(f'{url} did not return a response.')
 
 
 if __name__ == '__main__':
