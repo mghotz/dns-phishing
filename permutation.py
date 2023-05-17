@@ -13,23 +13,15 @@ import itertools
 import tldextract
 import aiohttp
 import asyncio
+import aiodns
+import dns.resolver
 from typing import List, Dict
+import json
 import requests
 import argparse
 from itertools import permutations
+from html_similarity import style_similarity, structural_similarity, similarity
 
-parser = argparse.ArgumentParser(description='URL Scanner')
-parser.add_argument('-u', '--url', type=str, required=True, help='URL to scan')
-
-tld_choices = ['all', 'popular']
-parser.add_argument('-t', '--tld', type=str, choices=tld_choices, default='popular',
-                    help=f'Choose TLDs to use in permutations (default: popular). Options: {tld_choices}')
-
-tld_source_choices = ['iana', 'file']
-parser.add_argument('-s', '--tld-source', type=str, choices=tld_source_choices, default='iana',
-                    help=f'Source of TLD list (default: iana). Options: {tld_source_choices}')
-
-args = parser.parse_args()
 
 REQUEST_TIMEOUT = 3
 REQUEST_RETRIES = 2
@@ -100,8 +92,8 @@ class Combinations:
         """
         Get a list of popular TLDs from a pre-defined list
         """
-        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm']
-        return tlds if self.tld == 'popular' else []
+        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm' ,'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it']
+        return tlds
 
     def aLetters(self):
         # Check every possibility for every letter
@@ -141,6 +133,12 @@ class Combinations:
 
         return self.pem_list
 
+    def missed_character(self):
+        for i in range(len(self.domain)):
+            new_domain = self.domain[:i] + self.domain[i+1:] + '.' + self.tld
+            self.pem_list.append(new_domain)
+        return self.pem_list
+
     def swap_adjacent_characters(self):
         for i in range(len(self.domain) - 1):
             swapped_domain = list(self.domain)
@@ -157,6 +155,14 @@ class Combinations:
                 for r in layout.get(c, ''):
                     self.pem_list.append(pre + r + suf)
 
+        return self.pem_list
+
+    def insertion(self):
+        for i in range(1, len(self.domain)-1):
+            prefix, orig_c = self.domain[:i], self.domain[i]
+            for c in (c for keys in self.keyboards for c in keys.get(orig_c, [])):
+                self.pem_list.append(prefix + c + orig_c + self.tld)
+                self.pem_list.append(prefix + orig_c + c + self.tld)	
         return self.pem_list
 
     def double_characters(self):
@@ -179,25 +185,35 @@ class Permutation:
         combinations = Combinations(self.domain_name)
         permutations = []
 
+        permutations += combinations.cyrillic()
         permutations += combinations.aLetters()
         permutations += combinations.lLetters()
         permutations += combinations.tlds()
-        permutations += combinations.cyrillic()
         permutations += combinations.replacement()
         permutations += combinations.swap_adjacent_characters()
         permutations += combinations.double_characters()
         permutations += combinations.reverse_domain()
-
+        permutations += combinations.missed_character()
+        permutations += combinations.insertion()
+        
         return permutations
 
 class Scanner:
     def __init__(self, urls):
         self.urls = urls
+        self.resolver = aiodns.DNSResolver(timeout=0.1)
+
+    async def get_dns_records(self, domain, record_type):
+        try:
+            result = await self.resolver.query(domain, record_type)
+            return domain, result
+        except Exception as e:
+            return domain, None
 
     async def get_response(self, session, url):
         for i in range(REQUEST_RETRIES):
             try:
-                async with session.get(url, timeout=REQUEST_TIMEOUT, ssl=False) as response:
+                async with session.get(f"https://{url}", timeout=REQUEST_TIMEOUT, ssl=False) as response:
                     return url, await response.text()
             except (aiohttp.InvalidURL, aiohttp.ClientConnectorError, asyncio.TimeoutError):
                 continue
@@ -205,37 +221,96 @@ class Scanner:
                 return url, None
         return url, None
 
-    async def scan_urls(self):
+    async def scan_domains(self):
+        tasks = []
+        for url in self.urls:
+            tasks.append(asyncio.ensure_future(self.get_dns_records(url, 'A')))
+        dns_records = await asyncio.gather(*tasks)
+        
+        existed_urls = [{'url': e_url[0], 'A': e_url[1]} for e_url in dns_records if e_url[1]]
         async with aiohttp.ClientSession() as session:
             tasks = []
-            for url in self.urls:
-                tasks.append(asyncio.ensure_future(self.get_response(session, f"https://{url}")))
+            for url in existed_urls:
+                tasks.append(asyncio.ensure_future(self.get_response(session, url['url'])))
             responses = await asyncio.gather(*tasks)
-            return responses
+            return responses, existed_urls
+    
+    
 
+def main(original_domain=False, original_similarity=False, original_similarity_check=False):
+    if (original_domain is False):
+        parser = argparse.ArgumentParser(description='URL Scanner')
+        parser.add_argument('-u', '--url', type=str, help='URL to scan')
 
-def main():
-    parser = argparse.ArgumentParser(description='URL Scanner')
-    parser.add_argument('-u', '--url', type=str, help='URL to scan')
-    args = parser.parse_args()
+        similarity_choices = ['style', 'structural', 'similarity']
+        parser.add_argument('-sim', '--similarity', type=str, choices=similarity_choices, default='style')
 
-    if not args.url:
+        parser.add_argument('-c', '--similaritycheck', action="store_true", help='Check similarity')
+
+        args = parser.parse_args()
+
+    original_domain = original_domain or args.url
+    original_similarity = original_similarity or args.similarity
+    original_similarity_check = original_similarity_check or args.similaritycheck
+
+    if not original_domain:
         print('Please provide a URL with the -u or --url argument.')
         return
 
-    urls = list(set(Permutation(args.url).generate_similar_domains()))
-
+    urls = Permutation(original_domain).generate_similar_domains()
+    urls = list(set(urls))
     scanner = Scanner(urls)
     loop = asyncio.get_event_loop()
-    responses = loop.run_until_complete(scanner.scan_urls())
+    responses = loop.run_until_complete(scanner.scan_domains())
+    original_domain_html = requests.get("https://{}".format(original_domain)).text
+    response = []
+    records  = responses[1]
+    htmls = responses[0]
+    for record in records:
+        if record['url'] != original_domain:
+            f_domain = record['url']
+            a_records = []
+            mx_records = []
+            ns_records = []
+            for a in record['A']:
+                a_records.append(a.host)
+            
+            try:
+                for mx in dns.resolver.resolve(f_domain, 'MX'):
+                    mx_records.append(mx.to_text())
+            except:
+                pass
+            try:
+                for ns in dns.resolver.resolve(f_domain, 'NS'):
+                    ns_records.append(ns.to_text())
+            except:
+                pass
+            
+            sim = False
+            if original_similarity_check:
+                f_html = [i[1] for i in htmls if i[0] == f_domain]
+                if len(f_html) > 0 and f_html[0]:
+                    get_html = f_html[0]
+                    if original_similarity == 'style':
+                        sim = style_similarity(original_domain_html, get_html)
+                    elif original_similarity == 'structural':
+                        sim = structural_similarity(original_domain_html, get_html)
+                    else:
+                        sim_style = style_similarity(original_domain_html, get_html)
+                        sim_structural = structural_similarity(original_domain_html, get_html)
+                        sim = (sim_style + sim_structural) / 2
 
-    for url, response in responses:
+                    sim = round((sim * 100), 2)
 
-        if response:
-            print(f'{url} returned response: {response[:50]}...')
-        else:
-            print(f'{url} did not return a response.')
+            response.append({
+                    'domain': f_domain,
+                    'a_records': a_records,
+                    'mx_records': mx_records,
+                    'ns_records': ns_records,
+                    'similarity': sim
+                })
 
+    return response
 
 if __name__ == '__main__':
     main()

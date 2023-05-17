@@ -1,69 +1,62 @@
-# URL Scanner
+## Permutation.py
 
-This is a Python script for scanning a URL and its permutations to see if they return a response. It uses the aiohttp library for making asynchronous HTTP requests.
+Permutation.py is a python script for generating similar domains (also known as permutation domains or domain permutations) for a given domain name. This script is mainly used for security testing purposes. It's a useful tool to identify potential phishing websites or domains that may be trying to impersonate your brand.
 
-## Getting started
+Author: Mahammad Salimov
+Email: salimovm.7@gmail.com
 
-### Prerequisites
+## Features
 
-- Python 3.x
-- aiohttp library
-- requests library
+- Generate similar domains by altering, adding, or deleting one character.
+- Generate similar domains by swapping adjacent characters.
+- Generate similar domains by replacing characters with similar-looking characters from different character sets (e.g., Cyrillic).
+- Generate similar domains by adding popular TLDs.
+- Check the existence of the domains and fetch DNS records.
+- Compare the similarity between the original and similar domain webpages.
 
-### Installation
+## Requirements
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/<username>/url-scanner.git
-   ```
-2. Install the required libraries:
-   ```sh
-   pip install aiohttp requests
-   ```
+- Python 3.7+
+- It requires the following Python packages: `itertools`, `tldextract`, `aiohttp`, `aiodns`, `dns.resolver`, `requests`, `argparse`, `html_similarity`
 
-### Usage
+## How to use
 
-To scan a URL, run the `scanner.py` script with the `-u` or `--url` argument followed by the URL you want to scan:
-```sh
-python scanner.py -u https://example.com
+1. First, install the required Python packages, using pip:
+
+```bash
+pip install -r requirements.txt
 ```
 
-The script will generate permutations of the URL and scan each permutation to see if it returns a response. If a response is returned, the script will print the URL and the first 50 characters of the response. If no response is returned, the script will print the URL and a message indicating that no response was returned.
+2. Run the script:
 
-### Options
-
-The following options are available:
-
-- `-u`, `--url`: The URL to scan (required).
-- `-t`, `--tlds`: The top-level domains to use for generating permutations (comma-separated).
-- `-a`, `--all-tlds`: Use all valid TLDs for generating permutations.
-- `-r`, `--retries`: The number of times to retry failed requests (default is 2).
-- `-T`, `--timeout`: The timeout for each request (default is 3 seconds).
-
-### Examples
-
-Scan a URL with the default options:
-```sh
-python scanner.py -u https://example.com
+```bash
+python permutation.py -u <URL> -sim <similarity> -c
 ```
 
-Scan a URL with all valid TLDs:
-```sh
-python scanner.py -u https://example.com -a
+Replace `<URL>` with the domain you want to scan. Replace `<similarity>` with the type of similarity you want to check. It can be either 'style', 'structural', or 'similarity'. Use `-c` to check the similarity.
+
+Example:
+
+```bash
+python permutation.py -u www.example.com -sim style -c
 ```
 
-Scan a URL with a specific set of TLDs:
-```sh
-python scanner.py -u https://example.com -t com,net,org
+This will generate similar domains for 'www.example.com', fetch their DNS records, get their webpage HTML, and check the style similarity with the original domain's webpage.
+
+## Flask Web App
+
+A flask web application is also provided for calling the script. You can run it using the following command:
+
+```bash
+flask run
 ```
+
+Please ensure that you have Flask installed and configured correctly before running the command.
+
+## Disclaimer
+
+This script is for educational and testing purposes only. Always ensure you have proper authorization before running any security testing tools against any domains.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Author
-
-- Name: Mahammad Salimov
-- Email: salimovm.7@gmail.com
-
-If you have any questions or feedback, please feel free to contact me.
+This project is open source under the MIT license. See the [LICENSE](LICENSE) file for details.
