@@ -86,7 +86,7 @@ async def process(scanner, original_domain, original_similarity, original_simila
                 })
             logger.info(response)
     
-    requests.post(callback_url, json=response)
+    requests.post(callback_url, json=response, timeout=5)
     return json.dumps(response)
 
 @app.post("/scan/")
