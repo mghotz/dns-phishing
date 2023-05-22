@@ -1,17 +1,15 @@
 from typing import Optional
 from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
-from permutation import Permutation, Scanner
+from permutation import Permutation, Scanner, REQUEST_TIMEOUT
 import asyncio
 import dns.resolver
 import requests
-import nest_asyncio
 import aiohttp
 from loguru import logger
 import sys
 from html_similarity import style_similarity, structural_similarity, similarity
 import json
-nest_asyncio.apply()
 
 
 logger.remove()
@@ -88,7 +86,7 @@ async def process(scanner, original_domain, original_similarity, original_simila
                 })
             logger.info(response)
     
-    requests.post(callback_url, json=response)
+    requests.post(callback_url, json=response, timeout=REQUEST_TIMEOUT)
     return json.dumps(response)
 
 @app.post("/scan/")
