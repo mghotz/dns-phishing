@@ -26,7 +26,7 @@ class Domain(BaseModel):
     style_check: Optional[bool] = False
 
 
-async def process(scanner, original_domain, original_similarity, original_similarity_check):
+async def process(scanner, original_domain, original_similarity, original_similarity_check, callback_url):
     tasks = []
     response = []
     # Push urls to resolve A record of DNS
@@ -41,10 +41,10 @@ async def process(scanner, original_domain, original_similarity, original_simila
         for url in records:
             tasks.append(asyncio.ensure_future(scanner.get_response(session, url['url'])))
         htmls  = await asyncio.gather(*tasks)
-        
+
     original_domain_html = requests.get("https://{}".format(original_domain)).text
     for record in records:
-        if record['url'] != url:
+        if record['url'] != original_domain:
             f_domain = record['url']
             a_records = []
             mx_records = []
@@ -84,20 +84,22 @@ async def process(scanner, original_domain, original_similarity, original_simila
                     'a_records': a_records,
                     'mx_records': mx_records,
                     'ns_records': ns_records,
-                    'similarity': sim if sim else 'Could not get HTML or similarity check was not enabled.'
+                    'similarity': sim
                 })
-
+            logger.info(response)
+    
+    requests.post(callback_url, json=response)
     return json.dumps(response)
 
 @app.post("/scan/")
 async def scan_domains(background_tasks: BackgroundTasks, domain: Domain):
     original_domain = domain.domain
-    original_similarity = domain.style
-    original_similarity_check = domain.style_check
+    original_similarity = domain.style 
+    original_similarity_check = domain.style_check or True
     callback_url = domain.callback_url
     urls = Permutation(original_domain).generate_similar_domains()
     urls = list(set(urls))
     scanner = Scanner(urls)
-    background_tasks.add_task(process, scanner, original_domain, original_similarity, original_similarity_check)
+    background_tasks.add_task(process, scanner, original_domain, original_similarity, original_similarity_check, callback_url)
 
     return {"result": "Success"}

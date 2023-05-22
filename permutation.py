@@ -92,7 +92,7 @@ class Combinations:
         """
         Get a list of popular TLDs from a pre-defined list
         """
-        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm' ,'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it']
+        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm' ,'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it', 'tk', 'cf']
         return tlds
 
     def aLetters(self):
@@ -235,82 +235,80 @@ class Scanner:
             responses = await asyncio.gather(*tasks)
             return responses, existed_urls
     
-    
+# def main(original_domain=False, original_similarity=False, original_similarity_check=False):
+#     if (original_domain is False):
+#         parser = argparse.ArgumentParser(description='URL Scanner')
+#         parser.add_argument('-u', '--url', type=str, help='URL to scan')
 
-def main(original_domain=False, original_similarity=False, original_similarity_check=False):
-    if (original_domain is False):
-        parser = argparse.ArgumentParser(description='URL Scanner')
-        parser.add_argument('-u', '--url', type=str, help='URL to scan')
+#         similarity_choices = ['style', 'structural', 'similarity']
+#         parser.add_argument('-sim', '--similarity', type=str, choices=similarity_choices, default='style')
 
-        similarity_choices = ['style', 'structural', 'similarity']
-        parser.add_argument('-sim', '--similarity', type=str, choices=similarity_choices, default='style')
+#         parser.add_argument('-c', '--similaritycheck', action="store_true", help='Check similarity')
 
-        parser.add_argument('-c', '--similaritycheck', action="store_true", help='Check similarity')
+#         args = parser.parse_args()
 
-        args = parser.parse_args()
+#     original_domain = original_domain or args.url
+#     original_similarity = original_similarity or args.similarity
+#     original_similarity_check = original_similarity_check or args.similaritycheck
 
-    original_domain = original_domain or args.url
-    original_similarity = original_similarity or args.similarity
-    original_similarity_check = original_similarity_check or args.similaritycheck
+#     if not original_domain:
+#         print('Please provide a URL with the -u or --url argument.')
+#         return
 
-    if not original_domain:
-        print('Please provide a URL with the -u or --url argument.')
-        return
-
-    urls = Permutation(original_domain).generate_similar_domains()
-    urls = list(set(urls))
-    scanner = Scanner(urls)
-    loop = asyncio.get_event_loop()
-    responses = loop.run_until_complete(scanner.scan_domains())
-    original_domain_html = requests.get("https://{}".format(original_domain)).text
-    response = []
-    records  = responses[1]
-    htmls = responses[0]
-    for record in records:
-        if record['url'] != original_domain:
-            f_domain = record['url']
-            a_records = []
-            mx_records = []
-            ns_records = []
-            for a in record['A']:
-                a_records.append(a.host)
+#     urls = Permutation(original_domain).generate_similar_domains()
+#     urls = list(set(urls))
+#     scanner = Scanner(urls)
+#     loop = asyncio.get_event_loop()
+#     responses = loop.run_until_complete(scanner.scan_domains())
+#     original_domain_html = requests.get("https://{}".format(original_domain)).text
+#     response = []
+#     records  = responses[1]
+#     htmls = responses[0]
+#     for record in records:
+#         if record['url'] != original_domain:
+#             f_domain = record['url']
+#             a_records = []
+#             mx_records = []
+#             ns_records = []
+#             for a in record['A']:
+#                 a_records.append(a.host)
             
-            try:
-                for mx in dns.resolver.resolve(f_domain, 'MX'):
-                    mx_records.append(mx.to_text())
-            except:
-                pass
-            try:
-                for ns in dns.resolver.resolve(f_domain, 'NS'):
-                    ns_records.append(ns.to_text())
-            except:
-                pass
+#             try:
+#                 for mx in dns.resolver.resolve(f_domain, 'MX'):
+#                     mx_records.append(mx.to_text())
+#             except:
+#                 pass
+#             try:
+#                 for ns in dns.resolver.resolve(f_domain, 'NS'):
+#                     ns_records.append(ns.to_text())
+#             except:
+#                 pass
             
-            sim = False
-            if original_similarity_check:
-                f_html = [i[1] for i in htmls if i[0] == f_domain]
-                if len(f_html) > 0 and f_html[0]:
-                    get_html = f_html[0]
-                    if original_similarity == 'style':
-                        sim = style_similarity(original_domain_html, get_html)
-                    elif original_similarity == 'structural':
-                        sim = structural_similarity(original_domain_html, get_html)
-                    else:
-                        sim_style = style_similarity(original_domain_html, get_html)
-                        sim_structural = structural_similarity(original_domain_html, get_html)
-                        sim = (sim_style + sim_structural) / 2
+#             sim = False
+#             if original_similarity_check:
+#                 f_html = [i[1] for i in htmls if i[0] == f_domain]
+#                 if len(f_html) > 0 and f_html[0]:
+#                     get_html = f_html[0]
+#                     if original_similarity == 'style':
+#                         sim = style_similarity(original_domain_html, get_html)
+#                     elif original_similarity == 'structural':
+#                         sim = structural_similarity(original_domain_html, get_html)
+#                     else:
+#                         sim_style = style_similarity(original_domain_html, get_html)
+#                         sim_structural = structural_similarity(original_domain_html, get_html)
+#                         sim = (sim_style + sim_structural) / 2
 
-                    sim = round((sim * 100), 2)
+#                     sim = round((sim * 100), 2)
 
-            response.append({
-                    'domain': f_domain,
-                    'a_records': a_records,
-                    'mx_records': mx_records,
-                    'ns_records': ns_records,
-                    'similarity': sim
-                })
+#             response.append({
+#                     'domain': f_domain,
+#                     'a_records': a_records,
+#                     'mx_records': mx_records,
+#                     'ns_records': ns_records,
+#                     'similarity': sim
+#                 })
 
-    return response
+#     return response
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
