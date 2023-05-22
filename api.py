@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
-from permutation import Permutation, Scanner
+from permutation import Permutation, Scanner, REQUEST_TIMEOUT
 import asyncio
 import dns.resolver
 import requests
@@ -86,7 +86,7 @@ async def process(scanner, original_domain, original_similarity, original_simila
                 })
             logger.info(response)
     
-    requests.post(callback_url, json=response, timeout=5)
+    requests.post(callback_url, json=response, timeout=REQUEST_TIMEOUT)
     return json.dumps(response)
 
 @app.post("/scan/")
