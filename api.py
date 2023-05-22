@@ -5,13 +5,11 @@ from permutation import Permutation, Scanner
 import asyncio
 import dns.resolver
 import requests
-import nest_asyncio
 import aiohttp
 from loguru import logger
 import sys
 from html_similarity import style_similarity, structural_similarity, similarity
 import json
-nest_asyncio.apply()
 
 
 logger.remove()
