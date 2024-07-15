@@ -257,7 +257,7 @@ class Combinations:
         """
         Get a list of popular TLDs from a pre-defined list
         """
-        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm', 'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it', 'tk', 'cf']
+        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm', 'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it', 'tk', 'cf', 'az', 'xyz', 'sh']
         return tlds
 
     def aLetters(self):
@@ -280,6 +280,7 @@ class Combinations:
 
     def tlds(self):
         # Add TLDs to original domain
+        # for suffix in self.get_tlds('iana'):
         for suffix in self.get_popular_tlds():
             permutation = self.domain + '.' + suffix
             self.pem_list.append(permutation)
