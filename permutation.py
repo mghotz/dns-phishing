@@ -8,7 +8,6 @@ Author: Mahammad Salimov
 Email: salimovm.7@gmail.com
 """
 
-
 import itertools
 import tldextract
 import aiohttp
@@ -32,6 +31,172 @@ class Combinations:
         'a': 'а', 'b': 'ь', 'c': 'с', 'd': 'ԁ', 'e': 'е', 'g': 'ԍ', 'h': 'һ',
         'i': 'і', 'j': 'ј', 'k': 'к', 'l': 'ӏ', 'm': 'м', 'o': 'о', 'p': 'р',
         'q': 'ԛ', 's': 'ѕ', 't': 'т', 'v': 'ѵ', 'w': 'ԝ', 'x': 'х', 'y': 'у',
+    }
+
+    glyphs_idn_by_tld = {
+        **dict.fromkeys(['ad', 'cz', 'sk', 'uk', 'co.uk', 'nl', 'edu', 'us'], {}),
+        **dict.fromkeys(['jp', 'co.jp', 'ad.jp', 'ne.jp'], {}),
+        **dict.fromkeys(['cn', 'com.cn', 'tw', 'com.tw', 'net.tw'], {}),
+        **dict.fromkeys(['info'], {
+            'a': ('á', 'ä', 'å', 'ą'),
+            'c': ('ć', 'č'),
+            'e': ('é', 'ė', 'ę'),
+            'i': ('í', 'į'),
+            'l': ('ł',),
+            'n': ('ñ', 'ń'),
+            'o': ('ó', 'ö', 'ø', 'ő'),
+            's': ('ś', 'š'),
+            'u': ('ú', 'ü', 'ū', 'ű', 'ų'),
+            'z': ('ź', 'ż', 'ž'),
+            'ae': ('æ',),
+        }),
+        **dict.fromkeys(['br', 'com.br'], {
+            'a': ('à', 'á', 'â', 'ã'),
+            'c': ('ç',),
+            'e': ('é', 'ê'),
+            'i': ('í',),
+            'o': ('ó', 'ô', 'õ'),
+            'u': ('ú', 'ü'),
+            'y': ('ý', 'ÿ'),
+        }),
+        **dict.fromkeys(['dk'], {
+            'a': ('ä', 'å'),
+            'e': ('é',),
+            'o': ('ö', 'ø'),
+            'u': ('ü',),
+            'ae': ('æ',),
+        }),
+        **dict.fromkeys(['eu', 'de', 'pl'], {
+            'a': ('á', 'à', 'ă', 'â', 'å', 'ä', 'ã', 'ą', 'ā'),
+            'c': ('ć', 'ĉ', 'č', 'ċ', 'ç'),
+            'd': ('ď', 'đ'),
+            'e': ('é', 'è', 'ĕ', 'ê', 'ě', 'ë', 'ė', 'ę', 'ē'),
+            'g': ('ğ', 'ĝ', 'ġ', 'ģ'),
+            'h': ('ĥ', 'ħ'),
+            'i': ('í', 'ì', 'ĭ', 'î', 'ï', 'ĩ', 'į', 'ī'),
+            'j': ('ĵ',),
+            'k': ('ķ', 'ĸ'),
+            'l': ('ĺ', 'ľ', 'ļ', 'ł'),
+            'n': ('ń', 'ň', 'ñ', 'ņ'),
+            'o': ('ó', 'ò', 'ŏ', 'ô', 'ö', 'ő', 'õ', 'ø', 'ō'),
+            'r': ('ŕ', 'ř', 'ŗ'),
+            's': ('ś', 'ŝ', 'š', 'ş'),
+            't': ('ť', 'ţ', 'ŧ'),
+            'u': ('ú', 'ù', 'ŭ', 'û', 'ů', 'ü', 'ű', 'ũ', 'ų', 'ū'),
+            'w': ('ŵ',),
+            'y': ('ý', 'ŷ', 'ÿ'),
+            'z': ('ź', 'ž', 'ż'),
+            'ae': ('æ',),
+            'oe': ('œ',),
+        }),
+        **dict.fromkeys(['fi'], {
+            '3': ('ʒ',),
+            'a': ('á', 'ä', 'å', 'â'),
+            'c': ('č',),
+            'd': ('đ',),
+            'g': ('ǧ', 'ǥ'),
+            'k': ('ǩ',),
+            'n': ('ŋ',),
+            'o': ('õ', 'ö'),
+            's': ('š',),
+            't': ('ŧ',),
+            'z': ('ž',),
+        }),
+        **dict.fromkeys(['no'], {
+            'a': ('á', 'à', 'ä', 'å'),
+            'c': ('č', 'ç'),
+            'e': ('é', 'è', 'ê'),
+            'i': ('ï',),
+            'n': ('ŋ', 'ń', 'ñ'),
+            'o': ('ó', 'ò', 'ô', 'ö', 'ø'),
+            's': ('š',),
+            't': ('ŧ',),
+            'u': ('ü',),
+            'z': ('ž',),
+            'ae': ('æ',),
+        }),
+        **dict.fromkeys(['be', 'fr', 're', 'yt', 'pm', 'wf', 'tf', 'ch', 'li'], {
+            'a': ('à', 'á', 'â', 'ã', 'ä', 'å'),
+            'c': ('ç',),
+            'e': ('è', 'é', 'ê', 'ë'),
+            'i': ('ì', 'í', 'î', 'ï'),
+            'n': ('ñ',),
+            'o': ('ò', 'ó', 'ô', 'õ', 'ö'),
+            'u': ('ù', 'ú', 'û', 'ü'),
+            'y': ('ý', 'ÿ'),
+            'ae': ('æ',),
+            'oe': ('œ',),
+        }),
+        **dict.fromkeys(['ca'], {
+            'a': ('à', 'â'),
+            'c': ('ç',),
+            'e': ('è', 'é', 'ê', 'ë'),
+            'i': ('î', 'ï'),
+            'o': ('ô',),
+            'u': ('ù', 'û', 'ü'),
+            'y': ('ÿ',),
+            'ae': ('æ',),
+            'oe': ('œ',),
+        }),
+    }
+
+    glyphs_unicode = {
+        '2': ('ƻ',),
+        '3': ('ʒ',),
+        '5': ('ƽ',),
+        'a': ('ạ', 'ă', 'ȧ', 'ɑ', 'å', 'ą', 'â', 'ǎ', 'á', 'ə', 'ä', 'ã', 'ā', 'à'),
+        'b': ('ḃ', 'ḅ', 'ƅ', 'ʙ', 'ḇ', 'ɓ'),
+        'c': ('č', 'ᴄ', 'ċ', 'ç', 'ć', 'ĉ', 'ƈ'),
+        'd': ('ď', 'ḍ', 'ḋ', 'ɖ', 'ḏ', 'ɗ', 'ḓ', 'ḑ', 'đ'),
+        'e': ('ê', 'ẹ', 'ę', 'è', 'ḛ', 'ě', 'ɇ', 'ė', 'ĕ', 'é', 'ë', 'ē', 'ȩ'),
+        'f': ('ḟ', 'ƒ'),
+        'g': ('ǧ', 'ġ', 'ǵ', 'ğ', 'ɡ', 'ǥ', 'ĝ', 'ģ', 'ɢ'),
+        'h': ('ȟ', 'ḫ', 'ḩ', 'ḣ', 'ɦ', 'ḥ', 'ḧ', 'ħ', 'ẖ', 'ⱨ', 'ĥ'),
+        'i': ('ɩ', 'ǐ', 'í', 'ɪ', 'ỉ', 'ȋ', 'ɨ', 'ï', 'ī', 'ĩ', 'ị', 'î', 'ı', 'ĭ', 'į', 'ì'),
+        'j': ('ǰ', 'ĵ', 'ʝ', 'ɉ'),
+        'k': ('ĸ', 'ǩ', 'ⱪ', 'ḵ', 'ķ', 'ᴋ', 'ḳ'),
+        'l': ('ĺ', 'ł', 'ɫ', 'ļ', 'ľ'),
+        'm': ('ᴍ', 'ṁ', 'ḿ', 'ṃ', 'ɱ'),
+        'n': ('ņ', 'ǹ', 'ń', 'ň', 'ṅ', 'ṉ', 'ṇ', 'ꞑ', 'ñ', 'ŋ'),
+        'o': ('ö', 'ó', 'ȯ', 'ỏ', 'ô', 'ᴏ', 'ō', 'ò', 'ŏ', 'ơ', 'ő', 'õ', 'ọ', 'ø'),
+        'p': ('ṗ', 'ƿ', 'ƥ', 'ṕ'),
+        'q': ('ʠ',),
+        'r': ('ʀ', 'ȓ', 'ɍ', 'ɾ', 'ř', 'ṛ', 'ɽ', 'ȑ', 'ṙ', 'ŗ', 'ŕ', 'ɼ', 'ṟ'),
+        's': ('ṡ', 'ș', 'ŝ', 'ꜱ', 'ʂ', 'š', 'ś', 'ṣ', 'ş'),
+        't': ('ť', 'ƫ', 'ţ', 'ṭ', 'ṫ', 'ț', 'ŧ'),
+        'u': ('ᴜ', 'ų', 'ŭ', 'ū', 'ű', 'ǔ', 'ȕ', 'ư', 'ù', 'ů', 'ʉ', 'ú', 'ȗ', 'ü', 'û', 'ũ', 'ụ'),
+        'v': ('ᶌ', 'ṿ', 'ᴠ', 'ⱴ', 'ⱱ', 'ṽ'),
+        'w': ('ᴡ', 'ẇ', 'ẅ', 'ẃ', 'ẘ', 'ẉ', 'ⱳ', 'ŵ', 'ẁ'),
+        'x': ('ẋ', 'ẍ'),
+        'y': ('ŷ', 'ÿ', 'ʏ', 'ẏ', 'ɏ', 'ƴ', 'ȳ', 'ý', 'ỿ', 'ỵ'),
+        'z': ('ž', 'ƶ', 'ẓ', 'ẕ', 'ⱬ', 'ᴢ', 'ż', 'ź', 'ʐ'),
+        'ae': ('æ',),
+        'oe': ('œ',),
+    }
+
+    glyphs_ascii = {
+        '0': ('o',),
+        '1': ('l', 'i'),
+        '3': ('8',),
+        '6': ('9',),
+        '8': ('3',),
+        '9': ('6',),
+        'b': ('d', 'lb'),
+        'c': ('e',),
+        'd': ('b', 'cl', 'dl'),
+        'e': ('c',),
+        'g': ('q',),
+        'h': ('lh'),
+        'i': ('1', 'l'),
+        'k': ('lc'),
+        'l': ('1', 'i'),
+        'm': ('n', 'nn', 'rn'),
+        'n': ('m', 'r'),
+        'o': ('0',),
+        'q': ('g',),
+        'w': ('vv',),
+        'rn': ('m',),
+        'cl': ('d',),
     }
 
     qwerty = {
@@ -92,7 +257,7 @@ class Combinations:
         """
         Get a list of popular TLDs from a pre-defined list
         """
-        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm' ,'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it', 'tk', 'cf']
+        tlds = ['com', 'org', 'net', 'edu', 'gov', 'info', 'biz', 'co', 'io', 'me', 'app', 'dev', 'tv', 'fm', 'am', 'de', 'ru', 'ag', 'cn', 'br', 'uk', 'it', 'tk', 'cf', 'az', 'xyz', 'sh']
         return tlds
 
     def aLetters(self):
@@ -102,7 +267,6 @@ class Combinations:
                 permutation = self.domain[:i] + letter + self.domain[i + 1:] + '.' + self.tld
                 self.pem_list.append(permutation)
         return self.pem_list
-
 
     def lLetters(self):
         # Add the letters that make up the word for every position
@@ -116,6 +280,7 @@ class Combinations:
 
     def tlds(self):
         # Add TLDs to original domain
+        # for suffix in self.get_tlds('iana'):
         for suffix in self.get_popular_tlds():
             permutation = self.domain + '.' + suffix
             self.pem_list.append(permutation)
@@ -154,7 +319,6 @@ class Combinations:
             for layout in self.keyboards:
                 for r in layout.get(c, ''):
                     self.pem_list.append(pre + r + suf)
-
         return self.pem_list
 
     def insertion(self):
@@ -162,7 +326,7 @@ class Combinations:
             prefix, orig_c = self.domain[:i], self.domain[i]
             for c in (c for keys in self.keyboards for c in keys.get(orig_c, [])):
                 self.pem_list.append(prefix + c + orig_c + self.tld)
-                self.pem_list.append(prefix + orig_c + c + self.tld)	
+                self.pem_list.append(prefix + orig_c + c + self.tld)
         return self.pem_list
 
     def double_characters(self):
@@ -176,6 +340,32 @@ class Combinations:
         permutation = reversed_domain + '.' + self.tld
         self.pem_list.append(permutation)
         return self.pem_list
+
+    def glyphs_idn(self):
+        tld_glyphs = self.glyphs_idn_by_tld.get(self.tld, {})
+        for i, c in enumerate(self.domain):
+            pre = self.domain[:i]
+            suf = self.domain[i + 1:] + '.' + self.tld
+            for g in tld_glyphs.get(c, ()):
+                self.pem_list.append(pre + g + suf)
+        return self.pem_list
+
+    def glyphs_unicodes(self):
+        for i, c in enumerate(self.domain):
+            pre = self.domain[:i]
+            suf = self.domain[i + 1:] + '.' + self.tld
+            for g in self.glyphs_unicode.get(c, ()):
+                self.pem_list.append(pre + g + suf)
+        return self.pem_list
+
+    def glyphs_asciis(self):
+        for i, c in enumerate(self.domain):
+            pre = self.domain[:i]
+            suf = self.domain[i + 1:] + '.' + self.tld
+            for g in self.glyphs_ascii.get(c, ()):
+                self.pem_list.append(pre + g + suf)
+        return self.pem_list
+
 
 class Permutation:
     def __init__(self, domain):
@@ -195,8 +385,12 @@ class Permutation:
         permutations += combinations.reverse_domain()
         permutations += combinations.missed_character()
         permutations += combinations.insertion()
+        permutations += combinations.glyphs_idn()
+        permutations += combinations.glyphs_unicodes()
+        permutations += combinations.glyphs_asciis()
         
         return permutations
+
 
 class Scanner:
     def __init__(self, urls):
@@ -234,81 +428,85 @@ class Scanner:
                 tasks.append(asyncio.ensure_future(self.get_response(session, url['url'])))
             responses = await asyncio.gather(*tasks)
             return responses, existed_urls
+
+
+def main(original_domain=False, original_similarity=False, original_similarity_check=False):
+    if not original_domain:
+        parser = argparse.ArgumentParser(description='URL Scanner')
+        parser.add_argument('-u', '--url', type=str, help='URL to scan')
+
+        similarity_choices = ['style', 'structural', 'similarity']
+        parser.add_argument('-sim', '--similarity', type=str, choices=similarity_choices, default='style')
+
+        parser.add_argument('-c', '--similaritycheck', action="store_true", help='Check similarity')
+
+        args = parser.parse_args()
+
+    original_domain = original_domain or args.url
+    original_similarity = original_similarity or args.similarity
+    original_similarity_check = original_similarity_check or args.similaritycheck
+
+    if not original_domain:
+        print('Please provide a URL with the -u or --url argument.')
+        return
+
+    urls = Permutation(original_domain).generate_similar_domains()
     
-# def main(original_domain=False, original_similarity=False, original_similarity_check=False):
-#     if (original_domain is False):
-#         parser = argparse.ArgumentParser(description='URL Scanner')
-#         parser.add_argument('-u', '--url', type=str, help='URL to scan')
-
-#         similarity_choices = ['style', 'structural', 'similarity']
-#         parser.add_argument('-sim', '--similarity', type=str, choices=similarity_choices, default='style')
-
-#         parser.add_argument('-c', '--similaritycheck', action="store_true", help='Check similarity')
-
-#         args = parser.parse_args()
-
-#     original_domain = original_domain or args.url
-#     original_similarity = original_similarity or args.similarity
-#     original_similarity_check = original_similarity_check or args.similaritycheck
-
-#     if not original_domain:
-#         print('Please provide a URL with the -u or --url argument.')
-#         return
-
-#     urls = Permutation(original_domain).generate_similar_domains()
-#     urls = list(set(urls))
-#     scanner = Scanner(urls)
-#     loop = asyncio.get_event_loop()
-#     responses = loop.run_until_complete(scanner.scan_domains())
-#     original_domain_html = requests.get("https://{}".format(original_domain)).text
-#     response = []
-#     records  = responses[1]
-#     htmls = responses[0]
-#     for record in records:
-#         if record['url'] != original_domain:
-#             f_domain = record['url']
-#             a_records = []
-#             mx_records = []
-#             ns_records = []
-#             for a in record['A']:
-#                 a_records.append(a.host)
+    urls = list(set(urls))
+    scanner = Scanner(urls)
+    loop = asyncio.get_event_loop()
+    responses = loop.run_until_complete(scanner.scan_domains())
+    original_domain_html = requests.get("https://{}".format(original_domain)).text
+    response = []
+    records  = responses[1]
+    htmls = responses[0]
+    
+    for record in records:
+        if record['url'] != original_domain:
+            f_domain = record['url']
+            a_records = []
+            mx_records = []
+            ns_records = []
+            for a in record['A']:
+                a_records.append(a.host)
             
-#             try:
-#                 for mx in dns.resolver.resolve(f_domain, 'MX'):
-#                     mx_records.append(mx.to_text())
-#             except:
-#                 pass
-#             try:
-#                 for ns in dns.resolver.resolve(f_domain, 'NS'):
-#                     ns_records.append(ns.to_text())
-#             except:
-#                 pass
+            try:
+                for mx in dns.resolver.resolve(f_domain, 'MX'):
+                    mx_records.append(mx.to_text())
+            except:
+                pass
+            try:
+                for ns in dns.resolver.resolve(f_domain, 'NS'):
+                    ns_records.append(ns.to_text())
+            except:
+                pass
             
-#             sim = False
-#             if original_similarity_check:
-#                 f_html = [i[1] for i in htmls if i[0] == f_domain]
-#                 if len(f_html) > 0 and f_html[0]:
-#                     get_html = f_html[0]
-#                     if original_similarity == 'style':
-#                         sim = style_similarity(original_domain_html, get_html)
-#                     elif original_similarity == 'structural':
-#                         sim = structural_similarity(original_domain_html, get_html)
-#                     else:
-#                         sim_style = style_similarity(original_domain_html, get_html)
-#                         sim_structural = structural_similarity(original_domain_html, get_html)
-#                         sim = (sim_style + sim_structural) / 2
+            sim = False
+            if original_similarity_check:
+                f_html = [i[1] for i in htmls if i[0] == f_domain]
+                if len(f_html) > 0 and f_html[0]:
+                    get_html = f_html[0]
+                    if original_similarity == 'style':
+                        sim = style_similarity(original_domain_html, get_html)
+                    elif original_similarity == 'structural':
+                        sim = structural_similarity(original_domain_html, get_html)
+                    else:
+                        sim_style = style_similarity(original_domain_html, get_html)
+                        sim_structural = structural_similarity(original_domain_html, get_html)
+                        sim = (sim_style + sim_structural) / 2
 
-#                     sim = round((sim * 100), 2)
+                    sim = round((sim * 100), 2)
 
-#             response.append({
-#                     'domain': f_domain,
-#                     'a_records': a_records,
-#                     'mx_records': mx_records,
-#                     'ns_records': ns_records,
-#                     'similarity': sim
-#                 })
+            response.append({
+                'domain': f_domain,
+                'a_records': a_records,
+                'mx_records': mx_records,
+                'ns_records': ns_records,
+                'similarity': sim
+            })
 
-#     return response
+    return response
 
-# if __name__ == '__main__':
-#     main()
+
+if __name__ == '__main__':
+    main()
